@@ -1,40 +1,42 @@
-name: Build glibc 2.27 for ARM64
+name: Build glibc 2.27 for ARM64 (GCC 8 on Ubuntu 22.04)
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04  # 使用 Ubuntu 22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install basic dependencies
+      - name: Install GCC 8 cross-compiler for ARM64
         run: |
           sudo apt-get update -y
+
+          # 安装 gcc-8 和交叉编译工具链
           sudo apt-get install -y \
-            make bison flex gettext texinfo xz-utils zip
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu \
+            make \
+            bison \
+            flex \
+            gettext \
+            texinfo \
+            xz-utils \
+            zip
 
-      - name: Install Linaro GCC 8 toolchain
-        run: |
-          wget https://releases.linaro.org/components/toolchain/binaries/8.5-2021.11/aarch64-linux-gnu/gcc-linaro-8.5.0-2021.11-x86_64_aarch64-linux-gnu.tar.xz
-          tar -xf gcc-linaro-8.5.0-2021.11-x86_64_aarch64-linux-gnu.tar.xz
-          echo "$PWD/gcc-linaro-8.5.0-2021.11-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
-
-      - name: Verify compiler
-        run: |
-          aarch64-linux-gnu-gcc --version
 
       - name: Download glibc 2.27 source
         run: |
           wget https://ftp.gnu.org/gnu/glibc/glibc-2.27.tar.xz
           tar -xf glibc-2.27.tar.xz
 
-      - name: Configure and build
+      - name: Configure for ARM64
         working-directory: glibc-2.27
         run: |
           mkdir -p build && cd build
+          CC="aarch64-linux-gnu-gcc" CXX="aarch64-linux-gnu-g++" \
           ../configure \
             --prefix=/usr/aarch64-linux-gnu \
             --host=aarch64-linux-gnu \
@@ -43,10 +45,14 @@ jobs:
             --with-headers=/usr/aarch64-linux-gnu/include \
             --disable-multilib \
             --disable-werror
+
+      - name: Build glibc
+        working-directory: glibc-2.27/build
+        run: |
           make -j$(nproc)
           make install DESTDIR=/tmp/glibc-install
 
-      - name: Package artifacts
+      - name: Zip the compiled glibc
         run: |
           cd /tmp/glibc-install
           zip -r glibc-2.27-arm64.zip .
