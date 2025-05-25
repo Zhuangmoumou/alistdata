@@ -1,4 +1,4 @@
-name: Build glibc 2.27 for ARM64 (GCC 8 on Ubuntu 22.04)
+name: Build glibc 2.27 for ARM64 (with ARM GCC 8)
 
 on:
   workflow_dispatch:
@@ -10,25 +10,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install GCC cross-compiler for ARM64
+      - name: Install basic dependencies
         run: |
-          # 添加旧版工具链 PPA
           sudo apt-get update -y
-
-          # 安装 gcc-8 和交叉编译工具链
           sudo apt-get install -y \
-            gcc--aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            make \
-            bison \
-            flex \
-            gettext \
-            texinfo \
-            xz-utils \
-            zip
+            make bison flex gettext texinfo xz-utils zip
 
-          # 验证编译器版本
-          aarch64-linux-gnu-gcc --version
+      - name: Download ARM GCC 8 toolchain
+        run: |
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-a/8.5-2020.12/binrel/gcc-arm-8.5-2020.12-x86_64-aarch64-linux-gnu.tar.xz
+          tar -xf gcc-arm-8.5-2020.12-x86_64-aarch64-linux-gnu.tar.xz
+          echo "$PWD/gcc-arm-8.5-2020.12-x86_64-aarch64-linux-gnu/bin" >> $GITHUB_PATH
 
       - name: Download glibc 2.27 source
         run: |
@@ -39,7 +31,6 @@ jobs:
         working-directory: glibc-2.27
         run: |
           mkdir -p build && cd build
-          CC="aarch64-linux-gnu-gcc" CXX="aarch64-linux-gnu-g++" \
           ../configure \
             --prefix=/usr/aarch64-linux-gnu \
             --host=aarch64-linux-gnu \
