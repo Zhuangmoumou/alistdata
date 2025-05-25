@@ -1,4 +1,4 @@
-name: Build glibc 2.27 for ARM64 (with ARM GCC 8)
+name: Build glibc 2.27 for ARM64
 
 on:
   workflow_dispatch:
@@ -16,18 +16,22 @@ jobs:
           sudo apt-get install -y \
             make bison flex gettext texinfo xz-utils zip
 
-      - name: Download ARM GCC 8 toolchain
+      - name: Install Linaro GCC 8 toolchain
         run: |
-          wget https://developer.arm.com/-/media/Files/downloads/gnu-a/8.5-2020.12/binrel/gcc-arm-8.5-2020.12-x86_64-aarch64-linux-gnu.tar.xz
-          tar -xf gcc-arm-8.5-2020.12-x86_64-aarch64-linux-gnu.tar.xz
-          echo "$PWD/gcc-arm-8.5-2020.12-x86_64-aarch64-linux-gnu/bin" >> $GITHUB_PATH
+          wget https://releases.linaro.org/components/toolchain/binaries/8.5-2021.11/aarch64-linux-gnu/gcc-linaro-8.5.0-2021.11-x86_64_aarch64-linux-gnu.tar.xz
+          tar -xf gcc-linaro-8.5.0-2021.11-x86_64_aarch64-linux-gnu.tar.xz
+          echo "$PWD/gcc-linaro-8.5.0-2021.11-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
+
+      - name: Verify compiler
+        run: |
+          aarch64-linux-gnu-gcc --version
 
       - name: Download glibc 2.27 source
         run: |
           wget https://ftp.gnu.org/gnu/glibc/glibc-2.27.tar.xz
           tar -xf glibc-2.27.tar.xz
 
-      - name: Configure for ARM64
+      - name: Configure and build
         working-directory: glibc-2.27
         run: |
           mkdir -p build && cd build
@@ -39,14 +43,10 @@ jobs:
             --with-headers=/usr/aarch64-linux-gnu/include \
             --disable-multilib \
             --disable-werror
-
-      - name: Build glibc
-        working-directory: glibc-2.27/build
-        run: |
           make -j$(nproc)
           make install DESTDIR=/tmp/glibc-install
 
-      - name: Zip the compiled glibc
+      - name: Package artifacts
         run: |
           cd /tmp/glibc-install
           zip -r glibc-2.27-arm64.zip .
