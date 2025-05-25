@@ -1,27 +1,27 @@
-name: Build glibc 2.27 for ARM64
+name: Build glibc 2.27 for ARM64 (GCC 8 on Ubuntu 22.04)
 
 on:
   workflow_dispatch:
-    inputs:
-      skip_cleanup:
-        description: "Skip cleanup after build? (true/false)"
-        required: false
-        default: "false"
-        type: boolean
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install GCC 8 cross-compiler for ARM64
         run: |
+          # 添加旧版工具链 PPA
           sudo apt-get update -y
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update -y
+
+          # 安装 gcc-8 和交叉编译工具链
           sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
+            gcc-8-aarch64-linux-gnu \
+            g++-8-aarch64-linux-gnu \
             make \
             bison \
             flex \
@@ -29,6 +29,9 @@ jobs:
             texinfo \
             xz-utils \
             zip
+
+          # 验证编译器版本
+          aarch64-linux-gnu-gcc-8 --version
 
       - name: Download glibc 2.27 source
         run: |
@@ -39,6 +42,7 @@ jobs:
         working-directory: glibc-2.27
         run: |
           mkdir -p build && cd build
+          CC="aarch64-linux-gnu-gcc-8" CXX="aarch64-linux-gnu-g++-8" \
           ../configure \
             --prefix=/usr/aarch64-linux-gnu \
             --host=aarch64-linux-gnu \
