@@ -79,12 +79,7 @@ jobs:
           mkdir -p "$TOOLCHAIN_PREFIX"
 
           # Build with logs redirected (only show errors)
-          make -j$(nproc) > >(tee -a build.log) 2> >(tee -a build.err >&2) || {
-            echo "=== BUILD FAILED ===";
-            tail -n 50 build.log;
-            tail -n 50 build.err;
-            exit 1;
-          }
+          make -j$(nproc)
 
           # Minimal verification
           echo "Toolchain verified:"
