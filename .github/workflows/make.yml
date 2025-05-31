@@ -27,8 +27,8 @@ jobs:
           sudo apt-mark hold grub-efi-amd64-signed
           sudo apt update -y
           sudo apt purge -y \
-            azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* \
-            powershell* openjdk* mysql* php* mongodb* snap*
+            azure-cli* docker* llvm* firefox google* dotnet* \
+            powershell* mysql* php* snap*
           sudo apt autoremove -y
           sudo apt clean
 
