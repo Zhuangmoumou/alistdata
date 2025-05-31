@@ -28,7 +28,7 @@ jobs:
           sudo apt update -y
           sudo apt purge -y \
             azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* \
-            powershell* openjdk* mysql* php* mongodb* snap* > /dev/null 2>&1
+            powershell* openjdk* mysql* php* mongodb* snap*
           sudo apt autoremove -y
           sudo apt clean
 
