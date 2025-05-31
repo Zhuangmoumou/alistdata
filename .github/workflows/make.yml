@@ -77,7 +77,7 @@ jobs:
           "$TOOLCHAIN_PREFIX/aarch64-linux-gnu/lib/libc.so.6" | head -1
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: arm64-toolchain
           path: /builder/arm64-toolchain
