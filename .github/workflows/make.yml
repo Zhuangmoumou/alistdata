@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-toolchain:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,20 +60,20 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y \
-            build-essential=12.9ubuntu3 \
-            bison=2:3.8.2+dfsg-1build1 \
-            flex=2.6.4-8build2 \
-            texinfo=6.8-4build1 \
-            gawk=1:5.1.0-1build3 \
-            automake=1:1.16.5-1.3 \
-            libtool=2.4.6-15build2 \
-            gettext=0.21-4ubuntu4 \
-            wget=1.21.2-2ubuntu1 \
-            xz-utils=5.2.5-2ubuntu1 \
-            pv=1.6.20-1 \
-            xfsprogs=5.13.0-2ubuntu1
+            build-essential \
+            bison \
+            flex \
+            texinfo \
+            gawk \
+            automake \
+            libtool \
+            gettext \
+            wget \
+            xz-utils \
+            pv \
+           xfsprogs
 
-      - name: Build with suppressed logs
+      - name: Build
         run: |
           export TOOLCHAIN_PREFIX="/builder/arm64-toolchain"
           mkdir -p "$TOOLCHAIN_PREFIX"
