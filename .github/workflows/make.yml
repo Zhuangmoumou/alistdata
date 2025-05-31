@@ -56,7 +56,7 @@ jobs:
           sudo apt update -y
           sudo apt install -y \
             build-essential bison flex texinfo gawk automake \
-            libtool gettext wget xz-utils > /dev/null 2>&1
+            libtool gettext wget xz-utils
 
       - name: Build with suppressed logs
         run: |
