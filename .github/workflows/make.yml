@@ -1,0 +1,83 @@
+name: Build ARM64 Toolchain with glibc 2.27
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-toolchain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Nuclear cleanup (strict)
+        run: |
+          # Force remove all Docker artifacts
+          docker system prune -a -f || true
+          docker rmi $(docker images -q) -f || true
+
+          # Purge CI tool caches
+          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
+          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
+
+          # Aggressively remove packages
+          sudo apt-mark hold grub-efi-amd64-signed
+          sudo apt update -y
+          sudo apt purge -y \
+            azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* \
+            powershell* openjdk* mysql* php* mongodb* snap* > /dev/null 2>&1
+          sudo apt autoremove -y
+          sudo apt clean
+
+      - name: Setup virtual disk (your method)
+        run: |
+          # Your exact disk setup commands
+          mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
+          root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
+          sudo truncate -s "${mnt_size}"G /mnt/mnt.img
+          sudo truncate -s "${root_size}"G /root.img
+          sudo losetup /dev/loop6 /mnt/mnt.img
+          sudo losetup /dev/loop7 /root.img
+          sudo pvcreate /dev/loop6
+          sudo pvcreate /dev/loop7
+          sudo vgcreate github /dev/loop6 /dev/loop7
+          sudo lvcreate -n runner -l 100%FREE github
+          sudo mkfs.xfs /dev/github/runner > /dev/null 2>&1
+          sudo mkdir -p /builder
+          sudo mount /dev/github/runner /builder
+          sudo chown -R runner:runner /builder
+          df -h /builder | grep /builder  # Verify mount
+
+      - name: Install minimal dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y \
+            build-essential bison flex texinfo gawk automake \
+            libtool gettext wget xz-utils > /dev/null 2>&1
+
+      - name: Build with suppressed logs
+        run: |
+          export TOOLCHAIN_PREFIX="/builder/arm64-toolchain"
+          mkdir -p "$TOOLCHAIN_PREFIX"
+
+          # Build with logs redirected (only show errors)
+          make -j$(nproc) > >(tee -a build.log) 2> >(tee -a build.err >&2) || {
+            echo "=== BUILD FAILED ===";
+            tail -n 50 build.log;
+            tail -n 50 build.err;
+            exit 1;
+          }
+
+          # Minimal verification
+          echo "Toolchain verified:"
+          "$TOOLCHAIN_PREFIX/bin/aarch64-linux-gnu-gcc" --version | head -1
+          "$TOOLCHAIN_PREFIX/aarch64-linux-gnu/lib/libc.so.6" | head -1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: arm64-toolchain
+          path: /builder/arm64-toolchain
